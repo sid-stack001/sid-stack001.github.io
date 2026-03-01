@@ -135,6 +135,8 @@ html, body {
   padding:1.2rem 1.5rem;
   backdrop-filter:blur(6px);
   position:relative;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 #terminal::-webkit-scrollbar { width:3px; }
 #terminal::-webkit-scrollbar-thumb { background:var(--dim); }
@@ -464,8 +466,10 @@ setInterval(updateUptime, 60000);
 
 function tick(){
   const d=new Date();
-  document.getElementById('clock').textContent=
-    d.toLocaleTimeString('en-IN',{hour12:false});
+  const h=String(d.getHours()).padStart(2,'0');
+  const m=String(d.getMinutes()).padStart(2,'0');
+  const s=String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent=`${h}:${m}:${s}`;
 }
 tick(); setInterval(tick,1000);
 
@@ -537,6 +541,7 @@ function addLine(text='', cls='', delay=0){
 async function typeText(text, cls='', speed=18){
   const d=document.createElement('div');
   d.className='t-line '+(cls||'');
+  d.style.cssText='white-space:normal;word-wrap:break-word;max-width:100%';
   term.appendChild(d);
   for(let i=0;i<=text.length;i++){
     d.textContent=text.slice(0,i);
@@ -591,21 +596,15 @@ const COMMANDS = {
     await addLine('<span class="hi">Real story     :</span>  11 months of groundwork <b>before</b> the grant existed');
     await addBlank();
     await addLine('THE ACTUAL CONTRIBUTION ──────────────────────────────────','subheading');
-    await addLine('  The grant didn\'t come first — the work did. Over 11 months,');
-    await addLine('  built the case from scratch: technical architecture, PoCs,');
-    await addLine('  presentations, and research documentation that went in front');
-    await addLine('  of DRDO evaluators. The sanction is a direct result of that.');
+    await addLine('The grant didn\'t come first — the work did. Over 11 months, built the case from scratch: technical architecture, PoCs, presentations, and research documentation that went in front of DRDO evaluators. The sanction is a direct result of that.');
     await addBlank();
-    await addLine('  Most people become interns on existing projects.');
-    await addLine('  <b>This project exists because of the work done before the title.</b>');
+    await addLine('Most people become interns on existing projects. <b>This project exists because of the work done before the title.</b>');
     await addBlank();
     await addLine('PROBLEM ──────────────────────────────────────────────────','subheading');
-    await addLine('  Adverse weather degrades optical sensors in defence systems.');
-    await addLine('  No robust, real-time multi-weather restoration solution existed.');
+    await addLine('Adverse weather degrades optical sensors in defence systems. No robust, real-time multi-weather restoration solution existed.');
     await addBlank();
     await addLine('APPROACH ─────────────────────────────────────────────────','subheading');
-    await addLine('  Benchmarked <b>GAN · Diffusion · CNN · Autoencoder · Transformer</b>');
-    await addLine('  architectures across unified multi-weather degradation datasets.');
+    await addLine('Benchmarked <b>GAN · Diffusion · CNN · Autoencoder · Transformer</b> architectures across unified multi-weather degradation datasets.');
     await addBlank();
     await addLine('RESULTS ──────────────────────────────────────────────────','subheading');
 

@@ -345,6 +345,7 @@ html, body {
     <div class="sb-divider"></div>
     <div class="sb-section">
       <div class="sb-label">// quick links</div>
+      <button class="cmd-btn" data-cmd="open --resume">open --resume</button>
       <button class="cmd-btn" data-cmd="open --github">open --github</button>
       <button class="cmd-btn" data-cmd="open --linkedin">open --linkedin</button>
       <button class="cmd-btn" data-cmd="open --email">open --email</button>
@@ -736,7 +737,7 @@ const COMMANDS = {
     const leadership = [
       ['AIML Lead · GDG on Campus','Jul 2025 – Present','Led coordinator recruitment for the AIML vertical. Organized a hands-on MLOps workshop at Convergence 2K25. Mentors juniors on AI/ML fundamentals, project structuring, and best practices.'],
       ['Cybersecurity & Testing Coordinator · GDG','Oct 2024 – Jun 2025','Ran a 25-day Cybersecurity & Software Testing bootcamp. Organized Hacksprint 2024. Brought in an external Google Developer Group Hyderabad speaker for an AR/VR workshop at Convergence 2K25.'],
-      ['Co-Founder · Sarvadrushti','halted','Pre-incubated startup under VJ HUB. Leading strategic development and operations.'],
+      ['Founder · Sarvadrushti','Ongoing','Pre-incubated startup under VJ HUB. Leading strategic development and operations.'],
       ['Codelabs Series · VJ Community','','Designed and delivered a multi-part Object Detection series for students.'],
     ];
 
@@ -810,6 +811,7 @@ const COMMANDS = {
     await addBlank();
     await addLine('Open to: research collaborations · ML engineering roles · internships');
     await addBlank();
+    await addLine('<span class="hi">resume  :</span>  <a href="https://drive.google.com/file/d/1cHje1vOZid_ExJD7dG8P9xD3OnwCTDo2/view?usp=sharing" target="_blank" style="color:var(--green);text-decoration:none">View Resume ↗</a>');
     await addLine('<span class="hi">email   :</span>  siddharthv643@gmail.com');
     await addLine('<span class="hi">phone   :</span>  +91 8317540116');
     await addLine('<span class="hi">github  :</span>  github.com/sid-stack001');
@@ -817,6 +819,14 @@ const COMMANDS = {
     await addLine('<span class="hi">location:</span>  Hyderabad, Telangana, IN');
     await addBlank();
     await addLine('// Open to conversations. Reach out.','comment');
+    await addBlank();
+  },
+
+  'open --resume': async()=>{
+    await addBlank();
+    await addLine('Opening resume ...','success');
+    await sleep(400);
+    window.open('https://drive.google.com/file/d/1cHje1vOZid_ExJD7dG8P9xD3OnwCTDo2/view?usp=sharing','_blank');
     await addBlank();
   },
 

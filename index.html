@@ -137,6 +137,7 @@ html, body {
   position:relative;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  min-width: 0;
 }
 #terminal::-webkit-scrollbar { width:3px; }
 #terminal::-webkit-scrollbar-thumb { background:var(--dim); }
@@ -147,7 +148,10 @@ html, body {
   color:var(--text);
   margin-bottom:.05rem;
   white-space: normal;
-  word-break:break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  display: block;
 }
 .t-line.prompt { color:var(--green); }
 .t-line.prompt::before { content:'sid@vision_core:~$ '; }

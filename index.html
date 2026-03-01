@@ -80,6 +80,8 @@ html, body {
   padding:0 1rem;
   font-size:.6rem; letter-spacing:1.5px;
   backdrop-filter:blur(10px);
+  white-space: nowrap;
+  overflow: hidden;
 }
 .tb-left { color:var(--green); display:flex; gap:1.5rem; }
 .tb-left span { color:var(--muted); }
@@ -142,7 +144,7 @@ html, body {
   line-height:1.7;
   color:var(--text);
   margin-bottom:.05rem;
-  white-space:pre-wrap;
+  white-space: normal;
   word-break:break-word;
 }
 .t-line.prompt { color:var(--green); }
@@ -215,14 +217,74 @@ html, body {
 }
 
 /* mobile fallback nav */
-@media(max-width:600px){
-  #os { grid-template-columns:1fr; grid-template-rows:28px 160px 1fr 24px; }
-  #sidebar { grid-row:2; border-right:none; border-bottom:1px solid var(--border); flex-direction:row; overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; }
-  .sb-section { padding:.4rem; display:flex; gap:.3rem; align-items:center; flex-shrink:0; }
-  .sb-label { display:none; }
-  .sb-info { display:none; }
-  #terminal { grid-row:3; }
-  #boot { padding:2rem; }
+@media(max-width:768px){
+  body { cursor: auto; }
+  #cur, #cur-r { display: none; }
+
+  #os {
+    grid-template-rows: 28px auto 1fr 24px;
+    grid-template-columns: 1fr;
+  }
+
+  #sidebar {
+    grid-row: 2;
+    grid-column: 1;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: column;
+    max-height: none;
+    padding: .4rem 0;
+  }
+
+  .sb-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    padding: .4rem .6rem;
+  }
+
+  .sb-label { display: none; }
+  .sb-divider { display: none; }
+  .sb-info { display: none; }
+
+  .cmd-btn {
+    font-size: .58rem;
+    padding: .3rem .5rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    width: auto;
+  }
+  .cmd-btn::before { content: '$ '; }
+  .cmd-btn.active { border-color: var(--green); }
+
+  #terminal {
+    grid-row: 3;
+    grid-column: 1;
+    padding: .8rem 1rem;
+  }
+
+  .t-line { font-size: .7rem; }
+  .t-line.heading { font-size: .75rem; }
+
+  .prog-label { width: 90px; font-size: .58rem; }
+  .prog-bar { max-width: 120px; }
+
+  #topbar {
+    font-size: .52rem;
+    padding: 0 .6rem;
+    gap: .5rem;
+  }
+  .tb-left { gap: .8rem; }
+  .tb-right { gap: .8rem; }
+
+  #statusbar {
+    font-size: .48rem;
+    padding: 0 .6rem;
+  }
+  #statusbar span:nth-child(2) { display: none; }
+
+  #boot { padding: 2rem 1.5rem; }
+  #boot-bar-wrap { width: 100%; max-width: 280px; }
 }
 </style>
 </head>
@@ -252,7 +314,7 @@ html, body {
       <span style="color:var(--dim)">|</span>
       <span>kernel</span> sid-ml-5.4.0
       <span style="color:var(--dim)">|</span>
-      <span>uptime</span> 21y 3m
+      <span>uptime</span> <span id="uptime" style="color:var(--green);font-weight:700;text-shadow:0 0 10px rgba(0,255,136,0.6)"></span>
     </div>
     <div class="tb-right">
       <span>HYD, IN</span>
@@ -388,6 +450,18 @@ document.querySelectorAll('button,a').forEach(el=>{
 /* ═══════════════════════════════════════════════
    CLOCK
 ═══════════════════════════════════════════════ */
+function updateUptime(){
+  const birth = new Date(2005, 2, 1); // March 1, 2005
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if(months < 0){ years--; months += 12; }
+  document.getElementById('uptime').textContent = `${years}y ${months}m`;
+}
+updateUptime();
+setInterval(updateUptime, 60000);
+
+
 function tick(){
   const d=new Date();
   document.getElementById('clock').textContent=
@@ -498,10 +572,7 @@ const COMMANDS = {
     await addBlank();
     await typeText('I engineer software. I research AI. I ship both.', '', 22);
     await addBlank();
-    await addLine('Strong CS fundamentals — DSA, systems, databases — backed by');
-    await addLine('hands-on research at DRDO and production work at Pi Health.');
-    await addLine('Comfortable across the stack: from <b>ML pipelines</b> to <b>backend APIs</b>');
-    await addLine('to <b>Dockerized infrastructure</b>. Open to SDE, AI/ML, and fintech roles.');
+    await addLine('Strong CS fundamentals — DSA, systems, databases — backed by hands-on research at DRDO and production work at Pi Health. Comfortable across the stack: from <b>ML pipelines</b> to <b>backend APIs</b> to <b>Dockerized infrastructure</b>. Open to SDE, AI/ML, and fintech roles.');
     await addBlank();
     await addLine('<span class="hi">↳ Education :</span>  B.Tech CS-AIML · VNRVJIET · CGPA 9.30 / 10 · 2022–2026');
     await addLine('<span class="hi">↳ Location  :</span>  Hyderabad, India');
@@ -721,18 +792,11 @@ const COMMANDS = {
     await addLine('ABOUT  //  cat about.txt','heading');
     await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
     await addBlank();
-    await typeText('I got into AI because I wanted to build systems that make sense', '', 20);
-    await typeText('of the world — not just process clean inputs, but handle the', '', 20);
-    await typeText('messy, noisy, real stuff. Weather-degraded images. Scanned', '', 20);
-    await typeText('medical documents. Raw sensor data.', '', 20);
+    await typeText('I got into AI because I wanted to build systems that make sense of the world — not just process clean inputs, but handle the messy, noisy, real stuff. Weather-degraded images. Scanned medical documents. Raw sensor data.', '', 12);
     await addBlank();
-    await typeText('What genuinely excites me is the idea that you can take random,', '', 20);
-    await typeText('unstructured data and pull out something meaningful — a pattern,', '', 20);
-    await typeText('a decision, an insight that wasn\'t obvious before. That\'s true', '', 20);
-    await typeText('whether it\'s a vision model or a trading algorithm. The math is', '', 20);
-    await typeText('different, the domain is different, but the core thing is the same.', '', 20);
+    await typeText('What genuinely excites me is the idea that you can take random, unstructured data and pull out something meaningful — a pattern, a decision, an insight that wasn\'t obvious before. That\'s true whether it\'s a vision model or a trading algorithm. The math is different, the domain is different, but the core thing is the same.', '', 12);
     await addBlank();
-    await typeText('Currently building, learning, and looking for hard problems worth solving.', '', 20);
+    await typeText('Currently building, learning, and looking for hard problems worth solving.', '', 18);
     await addBlank();
   },
 

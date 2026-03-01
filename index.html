@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SID_OS :: VISION_CORE v2.6</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:       #020608;
+  --bg1:      #050d10;
+  --bg2:      #091419;
+  --green:    #00ff88;
+  --green2:   #00cc6a;
+  --dim:      #006633;
+  --amber:    #ffb300;
+  --red:      #ff3355;
+  --blue:     #00aaff;
+  --text:     #b0d4c0;
+  --muted:    #3a6b50;
+  --border:   rgba(0,255,136,0.12);
+  --glow:     0 0 12px rgba(0,255,136,0.4);
+  --glow-lg:  0 0 40px rgba(0,255,136,0.15);
+}
+
+html, body {
+  width:100%; height:100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+}
+
+/* ── CURSOR ── */
+#cur { position:fixed; width:10px; height:10px; border-radius:50%; background:var(--green); pointer-events:none; z-index:9999; mix-blend-mode:screen; transition:transform .1s; box-shadow:var(--glow); }
+#cur-r { position:fixed; width:28px; height:28px; border:1px solid rgba(0,255,136,.4); border-radius:50%; pointer-events:none; z-index:9998; transition:left .12s ease,top .12s ease; }
+
+/* ── NEURAL CANVAS ── */
+#neural { position:fixed; inset:0; z-index:0; opacity:.55; }
+
+/* ── BOOT SCREEN ── */
+#boot {
+  position:fixed; inset:0; z-index:100;
+  background:var(--bg);
+  display:flex; flex-direction:column; justify-content:center; align-items:flex-start;
+  padding: 4rem 6rem;
+  transition: opacity .6s ease;
+}
+#boot.hide { opacity:0; pointer-events:none; }
+#boot-lines { display:flex; flex-direction:column; gap:.35rem; }
+.boot-line { font-size:.78rem; color:var(--muted); opacity:0; transform:translateX(-8px); transition:opacity .3s, transform .3s; }
+.boot-line.show { opacity:1; transform:none; }
+.boot-line.ok::after { content:' [OK]'; color:var(--green); }
+.boot-line.warn::after { content:' [WARN]'; color:var(--amber); }
+.boot-line span { color:var(--green); }
+#boot-bar-wrap { margin-top:1.5rem; width:340px; height:3px; background:var(--bg2); border:1px solid var(--border); opacity:0; transition:opacity .3s; }
+#boot-bar-wrap.show { opacity:1; }
+#boot-bar { height:100%; width:0%; background:var(--green); box-shadow:var(--glow); transition:width .05s linear; }
+#boot-pct { font-size:.65rem; color:var(--green); margin-top:.4rem; opacity:0; }
+#boot-pct.show { opacity:1; }
+
+/* ── MAIN OS SHELL ── */
+#os {
+  position:fixed; inset:0; z-index:10;
+  display:grid;
+  grid-template-rows: 28px 1fr 24px;
+  grid-template-columns: 220px 1fr;
+  opacity:0; transition:opacity .8s;
+}
+#os.show { opacity:1; }
+
+/* ── TOPBAR ── */
+#topbar {
+  grid-column: 1/-1;
+  background: rgba(2,6,8,.95);
+  border-bottom: 1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 1rem;
+  font-size:.6rem; letter-spacing:1.5px;
+  backdrop-filter:blur(10px);
+}
+.tb-left { color:var(--green); display:flex; gap:1.5rem; }
+.tb-left span { color:var(--muted); }
+.tb-right { color:var(--muted); display:flex; gap:1.5rem; }
+.tb-right b { color:var(--amber); }
+#clock { color:var(--green); }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  background: rgba(5,13,16,.9);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  overflow-y:auto; overflow-x:hidden;
+  backdrop-filter:blur(8px);
+}
+#sidebar::-webkit-scrollbar { width:2px; }
+#sidebar::-webkit-scrollbar-thumb { background:var(--dim); }
+
+.sb-section { padding:.6rem .8rem .3rem; }
+.sb-label { font-size:.5rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:.4rem; }
+
+.cmd-btn {
+  display:block; width:100%;
+  padding:.4rem .6rem;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;
+  color:var(--muted);
+  background:transparent;
+  border:none; border-radius:2px;
+  text-align:left;
+  cursor:pointer;
+  transition:all .15s;
+  letter-spacing:.3px;
+  position:relative;
+}
+.cmd-btn::before { content:'$ '; color:var(--dim); transition:color .15s; }
+.cmd-btn:hover { color:var(--green); background:rgba(0,255,136,.05); }
+.cmd-btn:hover::before { color:var(--green); }
+.cmd-btn.active { color:var(--green); background:rgba(0,255,136,.08); border-left:2px solid var(--green); padding-left:calc(.6rem - 2px); }
+.cmd-btn.active::before { color:var(--green); }
+
+.sb-divider { height:1px; background:var(--border); margin:.5rem .8rem; }
+
+.sb-info { padding:.5rem .8rem; font-size:.55rem; color:var(--muted); line-height:1.8; }
+.sb-info b { color:var(--green); }
+
+/* ── TERMINAL PANE ── */
+#terminal {
+  background: rgba(2,6,8,.85);
+  overflow-y:auto; overflow-x:hidden;
+  padding:1.2rem 1.5rem;
+  backdrop-filter:blur(6px);
+  position:relative;
+}
+#terminal::-webkit-scrollbar { width:3px; }
+#terminal::-webkit-scrollbar-thumb { background:var(--dim); }
+
+.t-line {
+  font-size:.72rem;
+  line-height:1.7;
+  color:var(--text);
+  margin-bottom:.05rem;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.t-line.prompt { color:var(--green); }
+.t-line.prompt::before { content:'sid@vision_core:~$ '; }
+.t-line.comment { color:var(--muted); font-style:italic; }
+.t-line.heading { color:var(--green); font-weight:700; font-size:.8rem; margin:.6rem 0 .2rem; }
+.t-line.subheading { color:var(--amber); font-size:.68rem; margin:.4rem 0 .1rem; }
+.t-line.success { color:var(--green); }
+.t-line.warn { color:var(--amber); }
+.t-line.err { color:var(--red); }
+.t-line.blank { height:.4rem; }
+.t-line.blue { color:var(--blue); }
+.t-line b { color:var(--green); font-weight:700; }
+.t-line .hi { color:var(--amber); }
+.t-line .lo { color:var(--muted); }
+.t-line .red { color:var(--red); }
+.t-line .bl { color:var(--blue); }
+
+/* typing cursor in terminal */
+.t-cursor { display:inline-block; width:7px; height:13px; background:var(--green); vertical-align:middle; animation:blink 1s step-end infinite; }
+@keyframes blink { 50%{opacity:0} }
+
+/* art border */
+.art-box {
+  border:1px solid var(--border);
+  padding:.6rem 1rem;
+  margin:.4rem 0;
+  position:relative;
+}
+.art-box::before { content:'┌'; position:absolute; top:-1px; left:-1px; color:var(--dim); }
+.art-box::after { content:'┘'; position:absolute; bottom:-1px; right:-1px; color:var(--dim); }
+
+/* progress bar inline */
+.prog-row { display:flex; align-items:center; gap:.8rem; margin:.15rem 0; }
+.prog-label { font-size:.62rem; color:var(--muted); width:120px; flex-shrink:0; }
+.prog-bar { flex:1; height:5px; background:rgba(0,255,136,.08); border:1px solid var(--border); position:relative; max-width:200px; }
+.prog-fill { height:100%; background:var(--green); box-shadow:var(--glow); transition:width 1s ease; width:0; }
+.prog-val { font-size:.58rem; color:var(--green); width:30px; }
+
+/* project card inline */
+.proj-inline {
+  border-left:2px solid var(--green);
+  padding:.5rem .8rem;
+  margin:.3rem 0;
+  background:rgba(0,255,136,.03);
+  transition:background .2s;
+}
+.proj-inline:hover { background:rgba(0,255,136,.07); }
+.proj-inline .p-name { color:var(--green); font-size:.72rem; font-weight:700; }
+.proj-inline .p-tag { font-size:.58rem; color:var(--muted); margin-bottom:.3rem; }
+.proj-inline .p-desc { font-size:.65rem; color:var(--text); line-height:1.7; }
+.proj-inline .p-stack { font-size:.58rem; color:var(--dim); margin-top:.3rem; }
+
+/* status bar */
+#statusbar {
+  grid-column:1/-1;
+  background:var(--green);
+  color:var(--bg);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 1rem;
+  font-size:.55rem; font-weight:700; letter-spacing:1px;
+}
+
+/* scanline */
+#os::after {
+  content:'';
+  position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);
+  pointer-events:none; z-index:50;
+}
+
+/* mobile fallback nav */
+@media(max-width:600px){
+  #os { grid-template-columns:1fr; grid-template-rows:28px 160px 1fr 24px; }
+  #sidebar { grid-row:2; border-right:none; border-bottom:1px solid var(--border); flex-direction:row; overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; }
+  .sb-section { padding:.4rem; display:flex; gap:.3rem; align-items:center; flex-shrink:0; }
+  .sb-label { display:none; }
+  .sb-info { display:none; }
+  #terminal { grid-row:3; }
+  #boot { padding:2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div id="cur"></div>
+<div id="cur-r"></div>
+
+<!-- Neural network canvas -->
+<canvas id="neural"></canvas>
+
+<!-- Boot screen -->
+<div id="boot">
+  <div id="boot-lines"></div>
+  <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+  <div id="boot-pct">0%</div>
+</div>
+
+<!-- OS Shell -->
+<div id="os">
+
+  <!-- Topbar -->
+  <div id="topbar">
+    <div class="tb-left">
+      <span>SID_OS</span> :: VISION_CORE v2.6
+      <span style="color:var(--dim)">|</span>
+      <span>kernel</span> sid-ml-5.4.0
+      <span style="color:var(--dim)">|</span>
+      <span>uptime</span> 21y 3m
+    </div>
+    <div class="tb-right">
+      <span>HYD, IN</span>
+      <span>B.Tech CS-AIML <b>'26</b></span>
+      <div id="clock"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">// commands</div>
+      <button class="cmd-btn" data-cmd="whoami">whoami</button>
+      <button class="cmd-btn" data-cmd="ls --experience">ls --experience</button>
+      <button class="cmd-btn" data-cmd="ls --research">ls --research</button>
+      <button class="cmd-btn" data-cmd="ls --projects">ls --projects</button>
+      <button class="cmd-btn" data-cmd="cat about.txt">cat about.txt</button>
+      <button class="cmd-btn" data-cmd="cat skills.txt">cat skills.txt</button>
+      <button class="cmd-btn" data-cmd="./achievements">./achievements</button>
+      <button class="cmd-btn" data-cmd="cat contact.txt">cat contact.txt</button>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">// quick links</div>
+      <button class="cmd-btn" data-cmd="open --github">open --github</button>
+      <button class="cmd-btn" data-cmd="open --linkedin">open --linkedin</button>
+      <button class="cmd-btn" data-cmd="open --email">open --email</button>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-info">
+      <b>SIDDHARTH VERMA</b><br>
+      B.Tech CS-AIML<br>
+      VNRVJIET '26<br>
+      <br>
+      Hyderabad, IN
+    </div>
+  </div>
+
+  <!-- Terminal -->
+  <div id="terminal">
+    <!-- content injected by JS -->
+  </div>
+
+  <!-- Status bar -->
+  <div id="statusbar">
+    <span id="sb-cmd">READY</span>
+    <span>SID_OS :: VISION_CORE v2.6 &nbsp;|&nbsp; VNRVJIET 2026 &nbsp;|&nbsp; ALL SYSTEMS NOMINAL</span>
+    <span id="sb-status">●&nbsp;ONLINE</span>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CURSOR
+═══════════════════════════════════════════════ */
+const cur = document.getElementById('cur');
+const curR = document.getElementById('cur-r');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx-5+'px'; cur.style.top=my-5+'px';
+});
+(function animR(){
+  rx+=(mx-rx-14)*.13; ry+=(my-ry-14)*.13;
+  curR.style.left=rx+'px'; curR.style.top=ry+'px';
+  requestAnimationFrame(animR);
+})();
+document.querySelectorAll('button,a').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.transform='scale(2.5)';});
+  el.addEventListener('mouseleave',()=>{cur.style.transform='';});
+});
+
+/* ═══════════════════════════════════════════════
+   NEURAL CANVAS
+═══════════════════════════════════════════════ */
+(function(){
+  const c=document.getElementById('neural');
+  const ctx=c.getContext('2d');
+  let W,H,nodes=[],mouse={x:0,y:0};
+  function resize(){ W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
+  resize(); window.addEventListener('resize',resize);
+  document.addEventListener('mousemove',e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
+
+  class Node {
+    constructor(){
+      this.x=Math.random()*W; this.y=Math.random()*H;
+      this.vx=(Math.random()-.5)*.3; this.vy=(Math.random()-.5)*.3;
+      this.r=Math.random()*1.5+.5;
+    }
+    update(){
+      this.x+=this.vx; this.y+=this.vy;
+      if(this.x<0||this.x>W) this.vx*=-1;
+      if(this.y<0||this.y>H) this.vy*=-1;
+    }
+  }
+
+  for(let i=0;i<90;i++) nodes.push(new Node());
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // mouse repulsion + draw nodes
+    nodes.forEach(n=>{
+      n.update();
+      const dx=mouse.x-n.x, dy=mouse.y-n.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ n.vx-=dx/d*.04; n.vy-=dy/d*.04; }
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,255,136,.7)';
+      ctx.fill();
+    });
+    // edges
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<130){
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x,nodes[i].y);
+          ctx.lineTo(nodes[j].x,nodes[j].y);
+          ctx.strokeStyle=`rgba(0,255,136,${(1-d/130)*.18})`;
+          ctx.lineWidth=.6;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ═══════════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════════ */
+function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=
+    d.toLocaleTimeString('en-IN',{hour12:false});
+}
+tick(); setInterval(tick,1000);
+
+/* ═══════════════════════════════════════════════
+   BOOT SEQUENCE
+═══════════════════════════════════════════════ */
+const bootLines = [
+  {t:'BIOS v2.6 initialized — SID_OS :: VISION_CORE',cls:'ok'},
+  {t:'Loading kernel: sid-ml-5.4.0 ...',cls:'ok'},
+  {t:'Mounting filesystem: /research /projects /skills',cls:'ok'},
+  {t:'Starting neural interface driver ...',cls:'ok'},
+  {t:'Checking DRDO grant modules ... [DFTM/034]',cls:'ok'},
+  {t:'IEEE publication registry ... [PuneCon 2025, SmartCom 2026]',cls:'ok'},
+  {t:'Loading model checkpoints: GAN / Diffusion / Transformer',cls:'ok'},
+  {t:'Inference engine: 90% latency reduction applied',cls:'ok'},
+  {t:'QA automation suite: Playwright + MCP-Cursor',cls:'warn'},
+  {t:'Startup Sarvadrushti ... pre-incubated @ VJ HUB',cls:'ok'},
+  {t:'All systems nominal. Booting desktop ...',cls:''},
+];
+
+async function runBoot(){
+  const wrap = document.getElementById('boot-lines');
+  const bar = document.getElementById('boot-bar');
+  const pct = document.getElementById('boot-pct');
+  const barWrap = document.getElementById('boot-bar-wrap');
+  barWrap.classList.add('show');
+  pct.classList.add('show');
+
+  for(let i=0;i<bootLines.length;i++){
+    const div=document.createElement('div');
+    div.className='boot-line '+(bootLines[i].cls||'');
+    div.textContent=bootLines[i].t;
+    wrap.appendChild(div);
+    await sleep(20);
+    div.classList.add('show');
+    const p=Math.round(((i+1)/bootLines.length)*100);
+    bar.style.width=p+'%';
+    pct.textContent=p+'%';
+    await sleep(i===bootLines.length-1?400:120);
+  }
+  await sleep(500);
+  document.getElementById('boot').classList.add('hide');
+  document.getElementById('os').classList.add('show');
+  await sleep(800);
+  runCommand('whoami', true);
+}
+
+/* ═══════════════════════════════════════════════
+   TERMINAL ENGINE
+═══════════════════════════════════════════════ */
+const term = document.getElementById('terminal');
+let typing = false;
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function addLine(text='', cls='', delay=0){
+  return new Promise(resolve=>{
+    setTimeout(()=>{
+      const d=document.createElement('div');
+      d.className='t-line '+(cls||'');
+      d.innerHTML=text;
+      term.appendChild(d);
+      term.scrollTop=term.scrollHeight;
+      resolve(d);
+    },delay);
+  });
+}
+
+async function typeText(text, cls='', speed=18){
+  const d=document.createElement('div');
+  d.className='t-line '+(cls||'');
+  term.appendChild(d);
+  for(let i=0;i<=text.length;i++){
+    d.textContent=text.slice(0,i);
+    term.scrollTop=term.scrollHeight;
+    await sleep(speed);
+  }
+  return d;
+}
+
+async function addPrompt(cmd){
+  const d=document.createElement('div');
+  d.className='t-line prompt';
+  term.appendChild(d);
+  const full=cmd;
+  for(let i=0;i<=full.length;i++){
+    d.textContent=full.slice(0,i);
+    await sleep(30);
+  }
+  term.scrollTop=term.scrollHeight;
+}
+
+async function addBlank(){ await addLine('','blank'); }
+
+const COMMANDS = {
+
+  'whoami': async()=>{
+    await addBlank();
+    const box = document.createElement('div');
+    box.style.cssText = 'border:1px solid rgba(0,255,136,0.25);padding:.55rem 1.1rem;margin:.2rem 0;display:inline-block;font-size:.72rem;color:var(--muted);letter-spacing:.5px;';
+    box.innerHTML = 'SIDDHARTH VERMA &nbsp;<span style="color:var(--dim)">·</span>&nbsp; Software Engineer &amp; AI Researcher';
+    term.appendChild(box);
+    term.scrollTop = term.scrollHeight;
+    await addBlank();
+    await typeText('I engineer software. I research AI. I ship both.', '', 22);
+    await addBlank();
+    await addLine('Strong CS fundamentals — DSA, systems, databases — backed by');
+    await addLine('hands-on research at DRDO and production work at Pi Health.');
+    await addLine('Comfortable across the stack: from <b>ML pipelines</b> to <b>backend APIs</b>');
+    await addLine('to <b>Dockerized infrastructure</b>. Open to SDE, AI/ML, and fintech roles.');
+    await addBlank();
+    await addLine('<span class="hi">↳ Education :</span>  B.Tech CS-AIML · VNRVJIET · CGPA 9.30 / 10 · 2022–2026');
+    await addLine('<span class="hi">↳ Location  :</span>  Hyderabad, India');
+    await addLine('<span class="hi">↳ Open to   :</span>  SDE · AI/ML Engineering · Fintech · Research roles');
+    await addBlank();
+    await addLine('// click a command on the left to explore further ↓','comment');
+    await addBlank();
+  },
+
+  'ls --research': async()=>{
+    await addBlank();
+    await addLine('RESEARCH  //  DRDO-IRDE  ·  Grant No. DFTM/034','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+    await addLine('<span class="hi">Official title :</span>  Research Intern (Part-Time)  ·  Dec 2025 – Present');
+    await addLine('<span class="hi">Real story     :</span>  11 months of groundwork <b>before</b> the grant existed');
+    await addBlank();
+    await addLine('THE ACTUAL CONTRIBUTION ──────────────────────────────────','subheading');
+    await addLine('  The grant didn\'t come first — the work did. Over 11 months,');
+    await addLine('  built the case from scratch: technical architecture, PoCs,');
+    await addLine('  presentations, and research documentation that went in front');
+    await addLine('  of DRDO evaluators. The sanction is a direct result of that.');
+    await addBlank();
+    await addLine('  Most people become interns on existing projects.');
+    await addLine('  <b>This project exists because of the work done before the title.</b>');
+    await addBlank();
+    await addLine('PROBLEM ──────────────────────────────────────────────────','subheading');
+    await addLine('  Adverse weather degrades optical sensors in defence systems.');
+    await addLine('  No robust, real-time multi-weather restoration solution existed.');
+    await addBlank();
+    await addLine('APPROACH ─────────────────────────────────────────────────','subheading');
+    await addLine('  Benchmarked <b>GAN · Diffusion · CNN · Autoencoder · Transformer</b>');
+    await addLine('  architectures across unified multi-weather degradation datasets.');
+    await addBlank();
+    await addLine('RESULTS ──────────────────────────────────────────────────','subheading');
+
+    const metrics = [
+      {label:'Structural Similarity',val:92},
+      {label:'Latency Reduction',val:90},
+      {label:'Visibility Improvement',val:60},
+    ];
+    for(const m of metrics){
+      const row=document.createElement('div');
+      row.className='prog-row';
+      row.innerHTML=`<span class="prog-label">  ${m.label}</span><div class="prog-bar"><div class="prog-fill" style="width:0%" data-w="${m.val}%"></div></div><span class="prog-val">${m.val}%</span>`;
+      term.appendChild(row);
+      term.scrollTop=term.scrollHeight;
+      await sleep(80);
+    }
+    setTimeout(()=>{
+      document.querySelectorAll('.prog-fill').forEach(f=>{ f.style.width=f.dataset.w; });
+    },100);
+
+    await addBlank();
+    await addLine('PUBLICATIONS ─────────────────────────────────────────────','subheading');
+    await addLine('  <span class="bl">●</span> IEEE PuneCon 2025  ·  published');
+    await addLine('  <span class="bl">●</span> SmartCom 2026      ·  accepted');
+    await addBlank();
+  },
+
+  'ls --projects': async()=>{
+    await addBlank();
+    await addLine('PROJECTS  //  selected work','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+
+    const projects = [
+      {
+        name:'VISIBILITY ENHANCEMENT SYSTEM',
+        tag:'Computer Vision · Real-time Inference',
+        desc:'Near real-time weather degradation removal. Strips fog, rain, and haze from video frames. 60% visibility improvement. Built as a direct productization of DRDO research findings.',
+        stack:'Python · PyTorch · OpenCV · Optimized inference pipeline',
+        link:'https://github.com/sid-stack001/Visibility-Enhancement-System',
+      },
+      {
+        name:'AUTOMATED AI SURVEILLANCE',
+        tag:'Action Recognition · Edge Deployment',
+        desc:'Violence detection at ≤4ms processing delay under test conditions with 85% accuracy. Gender detection module triggers automated alerts. Designed for edge deployment with Flask API.',
+        stack:'Python · YOLO · PyTorch · Flask · Real-time video stream',
+        link:'https://github.com/sid-stack001/Automated-surveillance-system',
+      },
+      {
+        name:'DOCUMENT INTELLIGENCE PIPELINE  [Pi Health]',
+        tag:'LLM Integration · Healthcare · Production',
+        desc:'Dockerized OCR pipeline with ML-based preprocessing for medical report extraction. Sub-20s inference. LLM layer generates structured summaries for clinical decision support.',
+        stack:'Docker · Tesseract OCR · LLM · Python · Regulated environment',
+        link:'https://github.com/sid-stack001/OCR-backend',
+      },
+    ];
+
+    for(const p of projects){
+      const el=document.createElement('div');
+      el.className='proj-inline';
+      el.innerHTML=`<div class="p-name">▸ ${p.name} <a href="${p.link}" target="_blank" style="font-size:.55rem;color:var(--muted);border:1px solid var(--border);padding:.1rem .4rem;margin-left:.5rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">↗ github</a></div><div class="p-tag">${p.tag}</div><div class="p-desc">${p.desc}</div><div class="p-stack">// ${p.stack}</div>`;
+      term.appendChild(el);
+      term.scrollTop=term.scrollHeight;
+      await sleep(120);
+    }
+    await addBlank();
+  },
+
+  'cat skills.txt': async()=>{
+    await addBlank();
+    await addLine('SKILLS  //  cat skills.txt','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+
+    const groups = [
+      {cat:'Core CS',items:['DSA','OOP','OS Concepts','System Design','Software Engineering']},
+      {cat:'Languages',items:['Python','C/C++','SQL','JavaScript']},
+      {cat:'Databases',items:['PostgreSQL','MongoDB']},
+      {cat:'ML / DL',items:['PyTorch','TensorFlow','Scikit-Learn','GANs','Transformers']},
+      {cat:'Vision & NLP',items:['OpenCV','YOLO','Tesseract OCR','LLMs','AI Agents']},
+      {cat:'Infrastructure',items:['Docker','Linux','Git','Playwright','React','Streamlit']},
+    ];
+
+    for(const g of groups){
+      const line=document.createElement('div');
+      line.className='t-line';
+      const tags=g.items.map(i=>`<span style="background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.15);padding:.1rem .4rem;margin:.1rem;display:inline-block;font-size:.6rem;color:var(--text)">${i}</span>`).join('');
+      line.innerHTML=`<span class="hi" style="display:inline-block;width:130px;font-size:.62rem">${g.cat}</span>${tags}`;
+      term.appendChild(line);
+      term.scrollTop=term.scrollHeight;
+      await sleep(80);
+    }
+    await addBlank();
+  },
+
+  './achievements': async()=>{
+    await addBlank();
+    await addLine('ACHIEVEMENTS & LEADERSHIP  //  ./achievements --all','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+    await addLine('COMPETITIONS ─────────────────────────────────────────────','subheading');
+
+    const wins = [
+      ['CodeStorm 2024','<b>1st Place</b> — national-level hackathon among 100 competing teams.'],
+      ['TechXcelerate · BITS Pilani','<b>1st Place</b> — national hackathon, March edition, among 1500+ students.'],
+      ['Summer Internship Project Expo 2025','<b>1st Place</b> — college-wide project expo.'],
+      ['Convergence · Software Hackathon 2023','<b>Runner Up</b> — college annual technical symposium.'],
+      ['Amazon ML Challenge 2025','Ranked <b>59th out of 80,000+</b> participants. Top 0.07% nationally.'],
+      ['TiE Grad Startup Tournament','<b>College Finalist</b> — deep-tech defence solutions via Sarvadrushti.'],
+    ];
+
+    for(const [title,desc] of wins){
+      const el=document.createElement('div');
+      el.className='t-line';
+      el.style.cssText='margin:.3rem 0;padding:.4rem .6rem;border-left:2px solid var(--dim)';
+      el.innerHTML=`<span style="color:var(--amber);font-size:.68rem;font-weight:700">${title}</span><br><span style="color:var(--muted);font-size:.63rem">${desc}</span>`;
+      term.appendChild(el);
+      term.scrollTop=term.scrollHeight;
+      await sleep(80);
+    }
+
+    await addBlank();
+    await addLine('LEADERSHIP ───────────────────────────────────────────────','subheading');
+
+    const leadership = [
+      ['AIML Lead · GDG on Campus','Jul 2025 – Present','Led coordinator recruitment for the AIML vertical. Organized a hands-on MLOps workshop at Convergence 2K25. Mentors juniors on AI/ML fundamentals, project structuring, and best practices.'],
+      ['Cybersecurity & Testing Coordinator · GDG','Oct 2024 – Jun 2025','Ran a 25-day Cybersecurity & Software Testing bootcamp. Organized Hacksprint 2024. Brought in an external Google Developer Group Hyderabad speaker for an AR/VR workshop at Convergence 2K25.'],
+      ['Founder · Sarvadrushti','Ongoing','Pre-incubated startup under VJ HUB. Leading strategic development and operations.'],
+      ['Codelabs Series · VJ Community','','Designed and delivered a multi-part Object Detection series for students.'],
+    ];
+
+    for(const [title,period,desc] of leadership){
+      const el=document.createElement('div');
+      el.className='t-line';
+      el.style.cssText='margin:.3rem 0;padding:.4rem .6rem;border-left:2px solid var(--accent2)';
+      el.innerHTML=`<span style="color:var(--green);font-size:.68rem;font-weight:700">${title}</span>${period ? `<span style="color:var(--dim);font-size:.6rem;margin-left:.6rem">${period}</span>` : ''}<br><span style="color:var(--muted);font-size:.63rem">${desc}</span>`;
+      term.appendChild(el);
+      term.scrollTop=term.scrollHeight;
+      await sleep(80);
+    }
+    await addBlank();
+  },
+
+  'ls --experience': async()=>{
+    await addBlank();
+    await addLine('EXPERIENCE  //  ls --experience','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+    await addLine('<span class="hi">Company  :</span>  Pi Health');
+    await addLine('<span class="hi">Role     :</span>  Software Development & Testing Intern');
+    await addLine('<span class="hi">Period   :</span>  Aug 2025 – Dec 2025  ·  Hyderabad, India');
+    await addBlank();
+    await addLine('WORK ─────────────────────────────────────────────────────','subheading');
+    await addBlank();
+
+    const work = [
+      {
+        title:'Document Intelligence Pipeline',
+        desc:'Engineered a Dockerized OCR pipeline using Tesseract with ML-based preprocessing, achieving sub-20s inference for medical report extraction. Integrated an LLM module to generate structured summaries for clinical decision support.',
+      },
+      {
+        title:'QA Automation Prototype',
+        desc:'Initiated automation prototypes using Playwright with MCP-Cursor integration, moving the team toward automated testing in a regulated healthcare environment.',
+      },
+      {
+        title:'Functional & Regression Testing',
+        desc:'Executed structured testing for the Front-end Interoperable Capture System, ensuring release stability and defect lifecycle traceability.',
+      },
+    ];
+
+    for(const w of work){
+      const el=document.createElement('div');
+      el.className='proj-inline';
+      el.innerHTML=`<div class="p-name">▸ ${w.title}</div><div class="p-desc">${w.desc}</div>`;
+      term.appendChild(el);
+      term.scrollTop=term.scrollHeight;
+      await sleep(100);
+    }
+    await addBlank();
+  },
+
+  'cat about.txt': async()=>{
+    await addBlank();
+    await addLine('ABOUT  //  cat about.txt','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+    await typeText('I got into AI because I wanted to build systems that make sense', '', 20);
+    await typeText('of the world — not just process clean inputs, but handle the', '', 20);
+    await typeText('messy, noisy, real stuff. Weather-degraded images. Scanned', '', 20);
+    await typeText('medical documents. Raw sensor data.', '', 20);
+    await addBlank();
+    await typeText('What genuinely excites me is the idea that you can take random,', '', 20);
+    await typeText('unstructured data and pull out something meaningful — a pattern,', '', 20);
+    await typeText('a decision, an insight that wasn\'t obvious before. That\'s true', '', 20);
+    await typeText('whether it\'s a vision model or a trading algorithm. The math is', '', 20);
+    await typeText('different, the domain is different, but the core thing is the same.', '', 20);
+    await addBlank();
+    await typeText('Currently building, learning, and looking for hard problems worth solving.', '', 20);
+    await addBlank();
+  },
+
+  'cat contact.txt': async()=>{
+    await addBlank();
+    await addLine('CONTACT  //  cat contact.txt','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+    await addLine('Open to: research collaborations · ML engineering roles · internships');
+    await addBlank();
+    await addLine('<span class="hi">email   :</span>  siddharthv643@gmail.com');
+    await addLine('<span class="hi">phone   :</span>  +91 8317540116');
+    await addLine('<span class="hi">github  :</span>  github.com/sid-stack001');
+    await addLine('<span class="hi">linkedin:</span>  linkedin.com/in/siddharth-verma-b7609b268');
+    await addLine('<span class="hi">location:</span>  Hyderabad, Telangana, IN');
+    await addBlank();
+    await addLine('// Open to conversations. Reach out.','comment');
+    await addBlank();
+  },
+
+  'open --github': async()=>{
+    await addBlank();
+    await addLine('Opening github.com/sid-stack001 ...','success');
+    await sleep(400);
+    window.open('https://github.com/sid-stack001','_blank');
+    await addBlank();
+  },
+
+  'open --linkedin': async()=>{
+    await addBlank();
+    await addLine('Opening linkedin.com/in/siddharth-verma-b7609b268 ...','success');
+    await sleep(400);
+    window.open('https://www.linkedin.com/in/siddharth-verma-b7609b268/','_blank');
+    await addBlank();
+  },
+
+  'open --email': async()=>{
+    await addBlank();
+    await addLine('Composing email to siddharthv643@gmail.com ...','success');
+    await sleep(400);
+    window.open('mailto:siddharthv643@gmail.com','_blank');
+    await addBlank();
+  },
+};
+
+async function runCommand(cmd, silent=false){
+  if(typing) return;
+  typing=true;
+
+  // update status
+  document.getElementById('sb-cmd').textContent=cmd.toUpperCase();
+
+  // mark active
+  document.querySelectorAll('.cmd-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector(`[data-cmd="${cmd}"]`);
+  if(btn) btn.classList.add('active');
+
+  if(!silent) await addPrompt(cmd);
+
+  const fn=COMMANDS[cmd];
+  if(fn) await fn();
+  else {
+    await addLine(`command not found: ${cmd}`,'err');
+    await addBlank();
+  }
+
+  document.getElementById('sb-cmd').textContent='READY';
+  typing=false;
+}
+
+/* Sidebar buttons */
+document.querySelectorAll('.cmd-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(!typing) runCommand(btn.dataset.cmd);
+  });
+});
+
+/* ── KICK OFF ── */
+runBoot();
+</script>
+</body>
+</html>

@@ -351,6 +351,11 @@ html, body {
       <button class="cmd-btn" data-cmd="open --email">open --email</button>
     </div>
     <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">// games</div>
+      <button class="cmd-btn" data-cmd="play snake">play snake</button>
+    </div>
+    <div class="sb-divider"></div>
     <div class="sb-info">
       <b>SIDDHARTH VERMA</b><br>
       B.Tech CS-AIML<br>
@@ -820,6 +825,162 @@ const COMMANDS = {
     await addBlank();
     await addLine('// Open to conversations. Reach out.','comment');
     await addBlank();
+  },
+
+  'play snake': async()=>{
+    if(document.getElementById('snake-wrap')){ return; } // already running
+    await addBlank();
+    await addLine('SNAKE  //  play snake','heading');
+    await addLine('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','comment');
+    await addBlank();
+    await addLine('// WASD or arrow keys to move · ESC to quit','comment');
+    await addBlank();
+
+    // Build game container
+    const wrap = document.createElement('div');
+    wrap.id = 'snake-wrap';
+    wrap.style.cssText = 'position:relative;display:inline-block;';
+
+    const scoreEl = document.createElement('div');
+    scoreEl.style.cssText = 'font-size:.65rem;color:var(--green);margin-bottom:.4rem;letter-spacing:1px;';
+    scoreEl.textContent = 'SCORE: 0  |  HI: ' + (localStorage.getItem('snakeHi')||0);
+
+    const canvas = document.createElement('canvas');
+    const COLS=28, ROWS=20, CELL=16;
+    canvas.width = COLS*CELL;
+    canvas.height = ROWS*CELL;
+    canvas.style.cssText = 'display:block;border:1px solid var(--border);background:#020608;';
+
+    const msgEl = document.createElement('div');
+    msgEl.style.cssText = 'font-size:.65rem;color:var(--muted);margin-top:.4rem;';
+    msgEl.textContent = '';
+
+    wrap.appendChild(scoreEl);
+    wrap.appendChild(canvas);
+    wrap.appendChild(msgEl);
+    term.appendChild(wrap);
+    term.scrollTop = term.scrollHeight;
+
+    const ctx = canvas.getContext('2d');
+    let snake, dir, nextDir, food, score, hi, gameLoop, running;
+
+    function randFood(){
+      let f;
+      do { f = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)}; }
+      while(snake.some(s=>s.x===f.x&&s.y===f.y));
+      return f;
+    }
+
+    function init(){
+      snake = [{x:14,y:10},{x:13,y:10},{x:12,y:10}];
+      dir = {x:1,y:0}; nextDir = {x:1,y:0};
+      score = 0; hi = parseInt(localStorage.getItem('snakeHi')||0);
+      food = randFood();
+      running = true;
+      msgEl.textContent = '';
+      scoreEl.textContent = `SCORE: 0  |  HI: ${hi}`;
+    }
+
+    function draw(){
+      ctx.fillStyle='#020608';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // grid dots
+      ctx.fillStyle='rgba(0,255,136,0.04)';
+      for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++){
+        ctx.fillRect(x*CELL+CELL/2-1,y*CELL+CELL/2-1,2,2);
+      }
+
+      // food
+      ctx.fillStyle='#ffb300';
+      ctx.shadowColor='#ffb300';
+      ctx.shadowBlur=10;
+      ctx.fillRect(food.x*CELL+2,food.y*CELL+2,CELL-4,CELL-4);
+      ctx.shadowBlur=0;
+
+      // snake
+      snake.forEach((s,i)=>{
+        const alpha = i===0?1:0.5+0.5*(1-i/snake.length);
+        ctx.fillStyle = i===0?'#00ff88':`rgba(0,255,136,${alpha})`;
+        ctx.shadowColor = i===0?'#00ff88':'transparent';
+        ctx.shadowBlur = i===0?8:0;
+        ctx.fillRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2);
+      });
+      ctx.shadowBlur=0;
+    }
+
+    function step(){
+      if(!running) return;
+      dir = nextDir;
+      const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+
+      // wall collision
+      if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS){
+        endGame(); return;
+      }
+      // self collision
+      if(snake.some(s=>s.x===head.x&&s.y===head.y)){
+        endGame(); return;
+      }
+
+      snake.unshift(head);
+      if(head.x===food.x&&head.y===food.y){
+        score++;
+        if(score>hi){ hi=score; localStorage.setItem('snakeHi',hi); }
+        scoreEl.textContent=`SCORE: ${score}  |  HI: ${hi}`;
+        food=randFood();
+      } else {
+        snake.pop();
+      }
+      draw();
+    }
+
+    function endGame(){
+      running=false;
+      clearInterval(gameLoop);
+      ctx.fillStyle='rgba(2,6,8,0.75)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#ff3355';
+      ctx.font='bold 14px JetBrains Mono';
+      ctx.textAlign='center';
+      ctx.fillText('GAME OVER',canvas.width/2,canvas.height/2-10);
+      ctx.fillStyle='var(--muted)';
+      ctx.font='11px JetBrains Mono';
+      ctx.fillText(`Score: ${score}`,canvas.width/2,canvas.height/2+10);
+      ctx.fillText('Press R to restart',canvas.width/2,canvas.height/2+28);
+      msgEl.textContent='R = restart · ESC = quit';
+    }
+
+    function startLoop(){
+      clearInterval(gameLoop);
+      gameLoop = setInterval(step, 130);
+    }
+
+    const keyHandler = (e)=>{
+      const k = e.key;
+      if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(k)) e.preventDefault();
+      if(k==='ArrowUp'||k==='w'||k==='W')    { if(dir.y!==1)  nextDir={x:0,y:-1}; }
+      if(k==='ArrowDown'||k==='s'||k==='S')  { if(dir.y!==-1) nextDir={x:0,y:1};  }
+      if(k==='ArrowLeft'||k==='a'||k==='A')  { if(dir.x!==1)  nextDir={x:-1,y:0}; }
+      if(k==='ArrowRight'||k==='d'||k==='D') { if(dir.x!==-1) nextDir={x:1,y:0};  }
+      if(k==='r'||k==='R'){
+        if(!running){  // only restart when game is over, not mid-game
+          clearInterval(gameLoop);
+          init(); draw(); startLoop();
+        }
+      }
+      if(k==='Escape'){
+        clearInterval(gameLoop);
+        running=false;
+        document.removeEventListener('keydown',keyHandler);
+        typing=false;
+        wrap.remove();
+      }
+    };
+
+    document.addEventListener('keydown', keyHandler);
+    init(); draw(); startLoop();
+    typing = false; // allow other commands while game runs
   },
 
   'open --resume': async()=>{

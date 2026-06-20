@@ -1,11 +1,10 @@
+<!DOCTYPE html>
 <!-- 
   SID_OS :: VISION_CORE v2.6
   Designed & built by Siddharth Verma
   github.com/sid-stack001 · siddharthv643@gmail.com
   Unauthorized reproduction discouraged.
 -->
-
-<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -355,6 +354,7 @@ html, body {
       <button class="cmd-btn" data-cmd="open --resume">open --resume</button>
       <button class="cmd-btn" data-cmd="open --github">open --github</button>
       <button class="cmd-btn" data-cmd="open --linkedin">open --linkedin</button>
+      <button class="cmd-btn" data-cmd="open --skbidi">open --skbidi</button>
       <button class="cmd-btn" data-cmd="open --email">open --email</button>
     </div>
     <div class="sb-divider"></div>
@@ -596,7 +596,7 @@ const COMMANDS = {
     await addBlank();
     await addLine('Strong CS fundamentals — DSA, systems, databases — backed by hands-on research at DRDO and production work at Pi Health. Comfortable across the stack: from <b>ML pipelines</b> to <b>backend APIs</b> to <b>Dockerized infrastructure</b>. Open to SDE, AI/ML, and fintech roles.');
     await addBlank();
-    await addLine('<span class="hi">↳ Education :</span>  B.Tech CS-AIML · VNRVJIET · CGPA 9.30 / 10 · 2022–2026');
+    await addLine('<span class="hi">↳ Education :</span>  B.Tech CS-AIML · VNRVJIET · CGPA 9.25 / 10 · 2022–2026');
     await addLine('<span class="hi">↳ Location  :</span>  Hyderabad, India');
     await addLine('<span class="hi">↳ Open to   :</span>  SDE · AI/ML Engineering · Fintech · Research roles');
     await addBlank();
@@ -823,7 +823,7 @@ const COMMANDS = {
     await addBlank();
     await addLine('Open to: research collaborations · ML engineering roles · internships');
     await addBlank();
-    await addLine('<span class="hi">resume  :</span>  <a href="https://drive.google.com/file/d/1cHje1vOZid_ExJD7dG8P9xD3OnwCTDo2/view?usp=sharing" target="_blank" style="color:var(--green);text-decoration:none">View Resume ↗</a>');
+    await addLine('<span class="hi">resume  :</span>  <a href="https://drive.google.com/file/d/1Kri1dvb28hZcbPOCqmPDojNV2fs9w49s/view?usp=sharing" target="_blank" style="color:var(--green);text-decoration:none">View Resume ↗</a>');
     await addLine('<span class="hi">email   :</span>  siddharthv643@gmail.com');
     await addLine('<span class="hi">phone   :</span>  +91 8317540116');
     await addLine('<span class="hi">github  :</span>  github.com/sid-stack001');
@@ -1011,6 +1011,14 @@ const COMMANDS = {
     await addLine('Opening linkedin.com/in/siddharth-verma-b7609b268 ...','success');
     await sleep(400);
     window.open('https://www.linkedin.com/in/siddharth-verma-b7609b268/','_blank');
+    await addBlank();
+  },
+
+  'open --skbidi': async()=>{
+    await addBlank();
+    await addLine('Opening skbidi.xyz ...','success');
+    await sleep(400);
+    window.open('https://skbidi.xyz','_blank');
     await addBlank();
   },
 
